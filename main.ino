@@ -1,17 +1,23 @@
 #include <Bounce.h>
 const int NUM_OF_BUTTONS = 3;
 
+const int NUM_OF_MIDI = (NUM_OF_BUTTONS * 2) - 1;
+
 const int MIDI_CHAN = 1;
 
 const int DEBOUNCE_TIME = 5;
 
-Bounce buttons[NUM_OF_BUTTONS] = {
-  Bounce (0, DEBOUNCE_TIME),
-  Bounce (1, DEBOUNCE_TIME),
-  Bounce (2, DEBOUNCE_TIME)
-  };
+Bounce buttons[3];
 
-const int MIDI_NOTE_VALS[NUM_OF_BUTTONS] = {60, 62, 64};
+int MIDI_NOTE_VALS[NUM_OF_MIDI];
+
+for (int i = 0; i < NUM_OF_BUTTONS; i++){
+  buttons[i] = Bounce (i, DEBOUNCE_TIME);
+  MIDI_NOTE_VALS[(2*i)] = 60 + 2*i;
+  MIDI_NOTE_VALS[(2*i)+1] = 60 + (2*i)+1;
+};
+
+bool button_state[NUM_OF_MIDI];
   
 
 void setup() {
@@ -19,35 +25,51 @@ void setup() {
   Serial.begin(9600);
   for (int i = 0; i < NUM_OF_BUTTONS; i++) {
     pinMode (i, INPUT_PULLUP);
-  }
-}
+  };
+};
 
 void loop() {
   // put your main code here, to run repeatedly:
   for (int i = 0; i < NUM_OF_BUTTONS; i++){
       buttons[i].update();
     }
-  if (buttons[0].fallingEdge() && buttons[1].fallingEdge()){
-      Serial.print("between 0 and 1");
-      usbMIDI.sendNoteOff (MIDI_NOTE_VALS[0], 0, MIDI_CHAN);
-      usbMIDI.sendNoteOff (MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
-      usbMIDI.sendNoteOn (61, 127, MIDI_CHAN);
-    }
-  else if (buttons[1].fallingEdge() && buttons[2].fallingEdge()){
-      Serial.print("between 1 and 2");
-      usbMIDI.sendNoteOff (MIDI_NOTE_VALS[0], 0, MIDI_CHAN);
-      usbMIDI.sendNoteOff (MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
-      usbMIDI.sendNoteOn (63, 127, MIDI_CHAN);
-    }
+  
   for (int i = 0; i< NUM_OF_BUTTONS; i++){
+    
     if (buttons[i].fallingEdge()){
-      Serial.print(i);
-        usbMIDI.sendNoteOn (MIDI_NOTE_VALS[i], 127, MIDI_CHAN);
-      }else if (buttons[i].risingEdge()){
-          usbMIDI.sendNoteOff (MIDI_NOTE_VALS[i], 0, MIDI_CHAN);
-          usbMIDI.sendNoteOff (61, 0, MIDI_CHAN);
-          usbMIDI.sendNoteOff (63, 0, MIDI_CHAN);
-          delay(25);
-        }
+      // the button above is also pressed
+      if(button_state[i+1])){
+        usbMIDI.sendNoteOn(MIDI_NOTE_VALS[NUM_OF_BUTTONS + i], 127, MIDI_CHAN);
+        button_state[NUM_OF_BUTTONS + i] = 1;
+        // turn off button above
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[i+1],127,MIDI_CHAN);
+        button_state[i+1] = 0;
+      // the button below is also pressed
+      }else if ((i > 0 && button_state[i-1]){
+        usbMIDI.sendNoteOn(MIDI_NOTE_VALS[NUM_OF_BUTTONS + i - 1], 127, MIDI_CHAN);
+        button_state[NUM_OF_BUTTONS + i - 1] = 1;
+        // turn off button below
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[i-1],127,MIDI_CHAN);
+        button_state[i - 1] = 0;
+      }else{
+        // normal button press
+        button_state[i] = 1;
+        usbMIDI.sendNoteOn(MIDI_NOTE_VALS[i], 127, MIDI_CHAN);
+      };
+    
+    }else if (buttons[i].risingEdge()){
+      // check if either "diagonal" buttons are down
+      if (button_state[NUM_OF_BUTTONS+i]){
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[NUM_OF_BUTTONS+i],0,MIDI_CHAN);
+        button_state[NUM_OF_BUTTONS+i] = 0;
+      }else if (i > 0 && button_state[NUM_OF_BUTTONS + i - 1]){
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[NUM_OF_BUTTONS+i-1],0,MIDI_CHAN);
+        button_state[NUM_OF_BUTTONS+i-1] = 0;              
+      }else{
+        button_state[i] = 0;
+        usbMIDI.sendNoteOff (MIDI_NOTE_VALS[i], 0, MIDI_CHAN);    
+      }
+      delay(25);
     }
+  } 
 }
