@@ -31,9 +31,21 @@ void loop() {
   
   for (int i = 0; i< 3; i++){
     if (buttons[i].fallingEdge()){
-      // normal button press
-      button_state[i] = 1;
-      usbMIDI.sendNoteOn(MIDI_NOTE_VALS[i], 127, MIDI_CHAN);    
+      if (button_state[0] && button_state[1]){
+        button_state[3] = 1;
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[0], 0, MIDI_CHAN);
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
+        usbMIDI.sendNoteOn(MIDI_NOT_VALS[3],127,MIDI_CHAN);
+      }else if (button_state[1] && button_state[2]){
+        button_state[4] = 1;
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
+        usbMIDI.sendNoteOff(MIDI_NOTE_VALS[2], 0, MIDI_CHAN);
+        usbMIDI.sendNoteOn(MIDI_NOT_VALS[4],127,MIDI_CHAN);
+      }else{ 
+        // normal button press
+        button_state[i] = 1;
+        usbMIDI.sendNoteOn(MIDI_NOTE_VALS[i], 127, MIDI_CHAN);
+      };
     }else if (buttons[i].risingEdge()){
       button_state[i] = 0;
       usbMIDI.sendNoteOff(MIDI_NOTE_VALS[i], 0, MIDI_CHAN);
@@ -48,17 +60,4 @@ void loop() {
     };
     delay(25);
   };
-  
-  if (button_state[0] && button_state[1]){
-    button_state[3] = 1;
-    usbMIDI.sendNoteOff(MIDI_NOTE_VALS[0], 0, MIDI_CHAN);
-    usbMIDI.sendNoteOff(MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
-    usbMIDI.sendNoteOn(MIDI_NOT_VALS[3],127,MIDI_CHAN);
-  };
-  if (button_state[1] && button_state[2]){
-    button_state[4] = 1;
-    usbMIDI.sendNoteOff(MIDI_NOTE_VALS[1], 0, MIDI_CHAN);
-    usbMIDI.sendNoteOff(MIDI_NOTE_VALS[2], 0, MIDI_CHAN);
-    usbMIDI.sendNoteOn(MIDI_NOT_VALS[4],127,MIDI_CHAN);
-  };  
 };
